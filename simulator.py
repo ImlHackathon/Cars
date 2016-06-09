@@ -17,7 +17,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 
-import student_policy as sp
+# import student_policy as sp
 
 
 numbers = {}
@@ -145,14 +145,15 @@ class Simulator(object):
         self._running = True
 
     def reset(self, args):
-        plt.close('all')
+        if self._screen is not None:
+            plt.close('all')
         self._args = args
         self._screen = None
         self._game_round = 0
         self._total_reward = 0
         self._build_policy()
         self._build_state()
-        self._init_gui()
+        # self._init_gui()
 
     def run(self):
         sys.stderr.write('Game round: 0')

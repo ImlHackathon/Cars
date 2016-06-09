@@ -118,21 +118,22 @@ def get_command_line_args():
     return args
 
 if __name__ == "__main__":
+    # print(theano.config)
     # parameters
     epsilon = .1  # exploration
     num_actions = 3  # [move_left, stay, move_right]
-    epoch = 200
+    epoch = 1
     # epoch = 1000
-    max_memory = 500
+    max_memory = 1000
     # hidden_size = 100
     hidden_size = 1200
     batch_size = 50
     grid_size = 10
 
     model = Sequential()
-    model.add(Dense(hidden_size, input_shape=(1200,), activation='relu'))
+    model.add(Dense(hidden_size, input_shape=(1200,), activation='softplus'))
     # model.add(Dense(hidden_size, input_shape=(grid_size**2,), activation='relu'))
-    model.add(Dense(hidden_size, activation='relu'))
+    model.add(Dense(hidden_size, activation='softplus'))
     model.add(Dense(num_actions))
     model.compile(sgd(lr=.2), "mse")
 
@@ -180,7 +181,8 @@ if __name__ == "__main__":
             inputs, targets = exp_replay.get_batch(model, batch_size=batch_size)
 
             a = model.train_on_batch(inputs, targets)
-            print (a)
+            if a is np.nan:
+                x = 1
             loss += a
             # loss += model.train_on_batch(inputs, targets)[0]
         print("Epoch {:03d}/999 | Loss {:.4f} | Win count {}".format(e, loss, win_cnt))
