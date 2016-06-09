@@ -19,6 +19,8 @@ import numpy as np
 
 import student_policy as sp
 
+
+numbers = {}
 #===============================================================================
 # Consts
 #===============================================================================
@@ -64,6 +66,14 @@ class Obstacle(Box):
         if self._X < 0:
             self._X = LANE_LENGTH-1
             self._Y = CAR_WIDTH/2 + int((np.random.rand())*(LANE_WIDTH-CAR_WIDTH)/DY_SIZE)*DY_SIZE
+            if str(self._Y) not in numbers.keys():
+                numbers[str(self._X)] = 1
+            else:
+                numbers[str(self._X)] += 1
+                # arr = [k for k in numbers.keys()]
+                # arr.sort()
+                # print(str(len(arr)) + " " + str(arr))
+        # print (self._X)
 
 class Agent(Box):
     def __init__(self, simulator, policy):
@@ -73,8 +83,15 @@ class Agent(Box):
         self._X = CAR_LENGTH
         self._Y = CAR_WIDTH/2 + int((np.random.rand())*(LANE_WIDTH-CAR_WIDTH)/DY_SIZE)*DY_SIZE
 
+
     def move(self):
         desired_move = DY_SIZE*np.sign(self._policy.get((self._X,self._Y),[(o._X,o._Y) for o in self._simulator._obstacles]))
+        self._Y += desired_move
+        self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
+        return desired_move
+
+    def move(self, action):
+        desired_move = DY_SIZE*np.sign(action)
         self._Y += desired_move
         self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
         return desired_move
@@ -115,7 +132,7 @@ class Simulator(object):
         self._total_reward = 0
         self._build_policy()
         self._build_state()
-        self._init_gui()
+        # self._init_gui()
 
 
     def _init_gui(self):
@@ -126,6 +143,16 @@ class Simulator(object):
         self._ax.set_aspect(1)
         self._ax.set_axis_bgcolor(CLR_GRAY)
         self._running = True
+
+    def reset(self, args):
+        plt.close('all')
+        self._args = args
+        self._screen = None
+        self._game_round = 0
+        self._total_reward = 0
+        self._build_policy()
+        self._build_state()
+        self._init_gui()
 
     def run(self):
         sys.stderr.write('Game round: 0')
@@ -140,6 +167,7 @@ class Simulator(object):
             self._total_reward += self._current_reward
             if (self._game_round % self._args.interval_gui == 0):
                 self._on_render()
+                pass
 
     def _build_policy(self):
         if self._args.policy == "NaivePolicy":
@@ -159,6 +187,43 @@ class Simulator(object):
         for o in self._obstacles: o.draw()
         plt.title('Round: %d, Current Reward %.2f, Avg Reward: %.2f' %  ((self._game_round), (self._current_reward), (self._total_reward/(self._game_round+1))))
         plt.pause(1.0/self._args.fps)
+
+    def act(self, action):
+        try:
+            action = action[0]
+        except:
+            action = action
+        action = action - 1
+        self._game_round += 1
+        self._agent.move(action)
+        for o in self._obstacles:
+            o.move()
+        accident = [((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH)) for o in self._obstacles]
+        self._current_reward = 1.0*((not any(accident))) - 0.01*(action != 0)
+        self._total_reward += self._current_reward
+        if (self._game_round % self._args.interval_gui == 0):
+            # self._on_render()
+            pass
+
+        return self.observe(), self._current_reward, self._game_round >= self._args.rounds
+
+    def observe(self):
+        state = np.zeros((40, 30))
+        # state[self._loc_to_matrix_y(self._agent._Y)][int(self._agent._X)] = 1
+        # print(str(self._loc_to_matrix_y(self._agent._Y))+ " " + str(self._agent._X))
+        state[int(self._agent._X)][self._loc_to_matrix_y(self._agent._Y)] = 1
+
+        for o in self._obstacles:
+            if o._X < 40:
+                # state[self._loc_to_matrix_y(o._Y)][int(o._X)] = 1
+                state[int(o._X)][self._loc_to_matrix_y(o._Y)] = 1
+
+        return state.reshape(1,-1)
+
+    def _loc_to_matrix_y(self, y):
+        for i, dy in enumerate(range(11, 71, 2)):
+            if y <= (dy/10.0):
+                return i
 
 #===============================================================================
 # Main

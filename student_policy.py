@@ -10,9 +10,9 @@ Auther(s):
 ===================================================
 """
 
-from simulator import AbstractPolicy
+# from simulator import AbstractPolicy
 
-class StudentPolicy(AbstractPolicy):
-    def get(self,agent_pos,obstacles_pos):
-        # TODO implement this method
-        return 0
+# class StudentPolicy(AbstractPolicy):
+#     def get(self,agent_pos,obstacles_pos):
+#         # TODO implement this method
+#         return 0
