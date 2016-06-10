@@ -66,10 +66,10 @@ class Obstacle(Box):
         if self._X < 0:
             self._X = LANE_LENGTH-1
             self._Y = CAR_WIDTH/2 + int((np.random.rand())*(LANE_WIDTH-CAR_WIDTH)/DY_SIZE)*DY_SIZE
-            if str(self._Y) not in numbers.keys():
-                numbers[str(self._X)] = 1
-            else:
-                numbers[str(self._X)] += 1
+            # if str(self._Y) not in numbers.keys():
+            #     numbers[str(self._X)] = 1
+            # else:
+            #     numbers[str(self._X)] += 1
                 # arr = [k for k in numbers.keys()]
                 # arr.sort()
                 # print(str(len(arr)) + " " + str(arr))
@@ -90,7 +90,7 @@ class Agent(Box):
         self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
         return desired_move
 
-    def move(self, action):
+    def move_man(self, action):
         desired_move = DY_SIZE*np.sign(action)
         self._Y += desired_move
         self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
@@ -132,7 +132,7 @@ class Simulator(object):
         self._total_reward = 0
         self._build_policy()
         self._build_state()
-        # self._init_gui()
+        self._init_gui()
 
 
     def _init_gui(self):
@@ -153,7 +153,7 @@ class Simulator(object):
         self._total_reward = 0
         self._build_policy()
         self._build_state()
-        # self._init_gui()
+        self._init_gui()
 
     def run(self):
         sys.stderr.write('Game round: 0')
@@ -161,6 +161,7 @@ class Simulator(object):
         while self._game_round < self._args.rounds:
             self._game_round += 1
             action = self._agent.move()
+            o_in_cond = "place holder"
             for o in self._obstacles:
                 o.move()
             accident = [((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH)) for o in self._obstacles]
@@ -196,35 +197,52 @@ class Simulator(object):
             action = action
         action = action - 1
         self._game_round += 1
-        self._agent.move(action)
+        self._agent.move_man(action)
+        in_range = None
         for o in self._obstacles:
+            if o._X <= 20 and o._X >= 10:
+                in_range = o
             o.move()
-        accident = [((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH)) for o in self._obstacles]
-        self._current_reward = 1.0*((not any(accident))) - 0.01*(action != 0)
-        self._total_reward += self._current_reward
+        # accident = [(np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH) for o in self._obstacles]
+        o_accident = [(o, ((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH))) for o in self._obstacles]
+        # self._current_reward = 1.0*((not any(accident))) - 0.01*(action != 0)
+        if action == 0:
+            self._current_reward = 0.01
+        else:
+            self._current_reward = 0
+        # self._total_reward += self._current_reward
+
+        print("\t\treward: " + str(self._current_reward))
+
         if (self._game_round % self._args.interval_gui == 0):
-            # self._on_render()
-            pass
+            self._on_render()
 
         return self.observe(), self._current_reward, self._game_round >= self._args.rounds
 
     def observe(self):
-        state = np.zeros((40, 30))
-        # state[self._loc_to_matrix_y(self._agent._Y)][int(self._agent._X)] = 1
-        # print(str(self._loc_to_matrix_y(self._agent._Y))+ " " + str(self._agent._X))
-        state[int(self._agent._X)][self._loc_to_matrix_y(self._agent._Y)] = 1
+        ROWS = 5
+        COLS = 5
+        np.set_printoptions(threshold=np.nan)
+        state = np.zeros((COLS, ROWS))
+
+        for y, j in enumerate(range(1, ROWS+1)):
+            if self._agent._Y < ((j * LANE_WIDTH)/ROWS):
+                state[0][y] = 1
+                break
+
 
         for o in self._obstacles:
-            if o._X < 40:
-                # state[self._loc_to_matrix_y(o._Y)][int(o._X)] = 1
-                state[int(o._X)][self._loc_to_matrix_y(o._Y)] = 1
+            for x, i in enumerate(range(1, COLS)):
+                if o._X < ((i * LANE_LENGTH)/(COLS)):
+                    for y, j in enumerate(range(1, ROWS+1)):
+                        if o._Y < ((j * LANE_WIDTH)/ROWS):
+                            state[x+1][y] = 1
+                            break
+
+        print(state.transpose())
 
         return state.reshape(1,-1)
 
-    def _loc_to_matrix_y(self, y):
-        for i, dy in enumerate(range(11, 71, 2)):
-            if y <= (dy/10.0):
-                return i
 
 #===============================================================================
 # Main

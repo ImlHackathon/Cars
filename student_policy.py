@@ -14,7 +14,7 @@ Auther(s):
 import json
 import numpy as np
 from keras.models import model_from_json
-from simulator import AbstractPolicy
+# from simulator import AbstractPolicy
 
 class StudentPolicy(AbstractPolicy):
 
@@ -27,16 +27,17 @@ class StudentPolicy(AbstractPolicy):
     def get(self,agent_pos,obstacles_pos):
         q = self._model.predict(self._observe(agent_pos, obstacles_pos))
         action = np.argmax(q[0])
-        return action
+        print(action-1)
+        return action - 1
 
     def _observe(self, agent, obstacles):
         X, Y = (0, 1)
-        state = np.zeros((40, 30))
+        state = np.zeros((20, 30))
         state[int(agent[X])][self._loc_to_matrix_y(agent[Y])] = 1
 
         for o in obstacles:
-            if o[X] < 40:
-                state[int([X])][self._loc_to_matrix_y([Y])] = 1
+            if o[X] < 60:
+                state[int(X/30)][self._loc_to_matrix_y(Y)] = 1
 
         return state.reshape(1,-1)
 
