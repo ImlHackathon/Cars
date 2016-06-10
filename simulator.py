@@ -17,7 +17,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 
-# import student_policy as sp
+import student_policy as sp
 
 
 numbers = {}
@@ -198,21 +198,11 @@ class Simulator(object):
         action = action - 1
         self._game_round += 1
         self._agent.move_man(action)
-        in_range = None
         for o in self._obstacles:
-            if o._X <= 20 and o._X >= 10:
-                in_range = o
             o.move()
-        # accident = [(np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH) for o in self._obstacles]
-        o_accident = [(o, ((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH))) for o in self._obstacles]
-        # self._current_reward = 1.0*((not any(accident))) - 0.01*(action != 0)
-        if action == 0:
-            self._current_reward = 0.01
-        else:
-            self._current_reward = 0
-        # self._total_reward += self._current_reward
+        accident = [(np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH) for o in self._obstacles]
 
-        print("\t\treward: " + str(self._current_reward))
+        self._current_reward = (1.0 * ((not any(accident))) - 0.01*action!=0) / 5
 
         if (self._game_round % self._args.interval_gui == 0):
             self._on_render()
@@ -222,7 +212,6 @@ class Simulator(object):
     def observe(self):
         ROWS = 5
         COLS = 5
-        np.set_printoptions(threshold=np.nan)
         state = np.zeros((COLS, ROWS))
 
         for y, j in enumerate(range(1, ROWS+1)):
@@ -238,8 +227,6 @@ class Simulator(object):
                         if o._Y < ((j * LANE_WIDTH)/ROWS):
                             state[x+1][y] = 1
                             break
-
-        print(state.transpose())
 
         return state.reshape(1,-1)
 

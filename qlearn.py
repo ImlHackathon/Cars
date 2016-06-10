@@ -4,7 +4,8 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.optimizers import sgd
-from simulator import Simulator
+from student_policy import *
+from simulator import *
 # import student_policy as sp
 
 class ExperienceReplay(object):
@@ -55,12 +56,12 @@ def get_command_line_args():
 if __name__ == "__main__":
     print("hey")
     # parameters
-    epsilon = .3  # exploration
+    epsilon = .1  # exploration
     num_actions = 3  # [move_up, stay, move_down]
     epoch = 500
-    max_memory = 100
-    hidden_size = 100
-    batch_size = 50
+    max_memory = 1500
+    hidden_size = 25
+    batch_size = 110
 
     model = Sequential()
     model.add(Dense(25, input_shape=(25,), activation='relu'))
@@ -120,5 +121,8 @@ if __name__ == "__main__":
             model.save_weights("model.h5", overwrite=True)
             with open("model.json", "w") as outfile:
                 json.dump(model.to_json(), outfile)
+    model.save_weights("model.h5", overwrite=True)
+    with open("model.json", "w") as outfile:
+        json.dump(model.to_json(), outfile)
 
 
