@@ -1,18 +1,15 @@
+
 """
 ===================================================
      Introduction to Machine Learning (67577)
              IML HACKATHON, June 2016
-
             **  Autonomous Driver  **
-
-Auther(s): etzion, assaf; nachmana, gal; levanon, erez;
-
+Auther(s): etzion, asaf; nachmana, gal; levanon, erez;
 ===================================================
 """
 
 '''relevant imports'''
 import json
-import numpy as np
 from keras.models import model_from_json
 from simulator import *
 
@@ -39,8 +36,18 @@ class StudentPolicy(AbstractPolicy):
         """
         q = self._model.predict(self._observe(agent_pos, obstacles_pos))
         action = np.argmax(q[0])
-        print(action-1)
-        return action - 1
+        action = action-1
+        if action==1:
+            action = -1
+        elif action==-1:
+            action = 1
+        else:
+            if agent_pos[1]<LANE_WIDTH/2:
+                action = 1
+            else:
+                action = -1
+
+        return action
 
     def _observe(self, agent, obstacles):
         """
@@ -48,7 +55,7 @@ class StudentPolicy(AbstractPolicy):
         the learner
         """
         X, Y = (0, 1)
-        ROWS = 5
+        ROWS = 3
         COLS = 5
         state = np.zeros((COLS, ROWS))
 

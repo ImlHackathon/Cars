@@ -19,6 +19,7 @@ import numpy as np
 
 import student_policy as sp
 
+numbers = {}
 #===============================================================================
 # Consts
 #===============================================================================
@@ -64,6 +65,14 @@ class Obstacle(Box):
         if self._X < 0:
             self._X = LANE_LENGTH-1
             self._Y = CAR_WIDTH/2 + int((np.random.rand())*(LANE_WIDTH-CAR_WIDTH)/DY_SIZE)*DY_SIZE
+            # if str(self._Y) not in numbers.keys():
+            #     numbers[str(self._X)] = 1
+            # else:
+            #     numbers[str(self._X)] += 1
+                # arr = [k for k in numbers.keys()]
+                # arr.sort()
+                # print(str(len(arr)) + " " + str(arr))
+        # print (self._X)
 
 class Agent(Box):
     def __init__(self, simulator, policy):
@@ -73,8 +82,15 @@ class Agent(Box):
         self._X = CAR_LENGTH
         self._Y = CAR_WIDTH/2 + int((np.random.rand())*(LANE_WIDTH-CAR_WIDTH)/DY_SIZE)*DY_SIZE
 
+
     def move(self):
         desired_move = DY_SIZE*np.sign(self._policy.get((self._X,self._Y),[(o._X,o._Y) for o in self._simulator._obstacles]))
+        self._Y += desired_move
+        self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
+        return desired_move
+
+    def move_man(self, action):
+        desired_move = DY_SIZE*np.sign(action)
         self._Y += desired_move
         self._Y = max(CAR_WIDTH/2,min(LANE_WIDTH-CAR_WIDTH/2,self._Y))
         return desired_move
@@ -127,12 +143,24 @@ class Simulator(object):
         self._ax.set_axis_bgcolor(CLR_GRAY)
         self._running = True
 
+    def reset(self, args):
+        if self._screen is not None:
+            plt.close('all')
+        self._args = args
+        self._screen = None
+        self._game_round = 0
+        self._total_reward = 0
+        self._build_policy()
+        self._build_state()
+        self._init_gui()
+
     def run(self):
         sys.stderr.write('Game round: 0')
 
         while self._game_round < self._args.rounds:
             self._game_round += 1
             action = self._agent.move()
+            o_in_cond = "place holder"
             for o in self._obstacles:
                 o.move()
             accident = [((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH)) for o in self._obstacles]
@@ -140,8 +168,11 @@ class Simulator(object):
             self._total_reward += self._current_reward
             if (self._game_round % self._args.interval_gui == 0):
                 self._on_render()
+                pass
+
 
     def _build_policy(self):
+
         if self._args.policy == "NaivePolicy":
             self._policy = NaivePolicy()
         elif self._args.policy == "StudentPolicy":
@@ -159,6 +190,86 @@ class Simulator(object):
         for o in self._obstacles: o.draw()
         plt.title('Round: %d, Current Reward %.2f, Avg Reward: %.2f' %  ((self._game_round), (self._current_reward), (self._total_reward/(self._game_round+1))))
         plt.pause(1.0/self._args.fps)
+
+    def act(self, action):
+        try:
+            action = action[0]
+        except:
+            action = action
+        action = action - 1
+        self._game_round += 1
+        self._agent.move_man(action)
+        in_range = None
+        for o in self._obstacles:
+            o.move()
+
+
+        self._current_reward = 0
+        accident = [(np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH) for o in self._obstacles]
+        o_accident = [(o, ((np.abs(o._X-self._agent._X)<CAR_LENGTH) and (np.abs(o._Y-self._agent._Y)<CAR_WIDTH))) for o in self._obstacles]
+        # self._current_reward = 1.0*((not any(accident))) - 0.01*(action != 0)
+
+        self._current_reward = 1*((any(accident)))
+        # print(self._current_reward)
+
+        self._total_reward += self._current_reward
+        if (self._game_round % self._args.interval_gui == 0):
+            self._on_render()
+
+        # if action == 0:
+        #     self._current_reward = 0.01
+        # else:
+        #     self._current_reward = 0
+
+        #
+        # print("round:")
+        # if in_range is not None:
+        #     print("\tchannel")
+        #     d = self._agent._Y - in_range._Y
+        #     if abs(d) >= CAR_WIDTH:
+        #         self._current_reward += 0.2
+        #     else:
+        #         if d < 0 and action < 0:
+        #             self._current_reward += -1
+        #         elif d > 0 and action > 0:
+        #             self._current_reward += -1
+        #
+        # cur_eps = CAR_WIDTH
+        # for couple in o_accident:
+        #     if couple[1]:
+        #         print("\tacident")
+        #         d = self._agent._Y - o._Y
+        #         if abs(d) < cur_eps:
+        #             if d < 0 and action <= 0:
+        #                 self._current_reward += -5
+        #             elif d > 0 and action >= 0:
+        #                 self._current_reward += -5
+        # print("\t\treward: " + str(self._current_reward))
+
+        return self.observe(), self._current_reward, self._game_round >= self._args.rounds
+
+    def observe(self):
+        np.set_printoptions(threshold=np.nan)
+        state = np.zeros((5, 3))
+
+        for y, j in enumerate(range(1, 5)):
+            if self._agent._Y < ((j * LANE_WIDTH)/3):
+                state[0][y] = 1
+                break
+
+
+        for o in self._obstacles:
+            for x, i in enumerate(range(1, 5)):
+                if o._X < ((i * LANE_LENGTH)/4):
+                    for y, j in enumerate(range(1, 5)):
+                        if o._Y < ((j * LANE_WIDTH)/3):
+                            state[x][y] = 1
+                            break
+
+        # print(state)
+
+        return state.reshape(1,-1)
+
 
 #===============================================================================
 # Main

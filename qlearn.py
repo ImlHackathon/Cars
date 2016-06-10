@@ -4,8 +4,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.optimizers import sgd
-from student_policy import *
-from simulator import *
+from simulator import Simulator
 # import student_policy as sp
 
 class ExperienceReplay(object):
@@ -56,18 +55,19 @@ def get_command_line_args():
 if __name__ == "__main__":
     print("hey")
     # parameters
-    epsilon = .1  # exploration
+    epsilon = .3  # exploration
     num_actions = 3  # [move_up, stay, move_down]
     epoch = 500
-    max_memory = 1500
+    max_memory = 500
     hidden_size = 25
-    batch_size = 110
+    batch_size = 60
 
     model = Sequential()
-    model.add(Dense(25, input_shape=(25,), activation='relu'))
-    model.add(Dense(hidden_size, activation='relu'))
+    model.add(Dense(15, input_shape=(15,), activation='tanh'))
+    model.add(Dense(hidden_size, activation='tanh'))
     model.add(Dense(num_actions))
     model.compile(sgd(lr=.2), "mse")
+
 
     # If you want to continue training from a previous model, just uncomment the line bellow
     # model.load_weights("model.h5")
@@ -121,6 +121,8 @@ if __name__ == "__main__":
             model.save_weights("model.h5", overwrite=True)
             with open("model.json", "w") as outfile:
                 json.dump(model.to_json(), outfile)
+
+    print("saving model")
     model.save_weights("model.h5", overwrite=True)
     with open("model.json", "w") as outfile:
         json.dump(model.to_json(), outfile)
